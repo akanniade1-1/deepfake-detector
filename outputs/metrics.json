@@ -1,0 +1,8 @@
+{
+  "accuracy": 0.791,
+  "precision": 0.791,
+  "recall": 0.791,
+  "f1": 0.791,
+  "roc_auc": 0.866449,
+  "n_test_samples": 2000
+}
