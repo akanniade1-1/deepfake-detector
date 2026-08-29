@@ -1,8 +1,8 @@
 """Download the 140k Real and Fake Faces dataset from Kaggle and build a
-stratified subset manifest for faster iteration on a laptop GPU."""
+manifest CSV covering the full dataset (labels matching the dataset's own
+convention: 1 = real, 0 = fake)."""
 
 import csv
-import random
 import subprocess
 import zipfile
 from pathlib import Path
@@ -10,10 +10,6 @@ from pathlib import Path
 DATASET = "xhlulu/140k-real-and-fake-faces"
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 ZIP_PATH = DATA_DIR / "140k-real-and-fake-faces.zip"
-
-# Per-split cap on the number of images to keep in the subset manifest.
-SUBSET_CAPS = {"train": 16000, "valid": 2000, "test": 2000}
-SEED = 42
 
 
 def download_and_extract() -> Path:
@@ -42,22 +38,18 @@ def download_and_extract() -> Path:
     return root
 
 
-def build_subset_manifest(root: Path) -> None:
-    rng = random.Random(SEED)
+def build_manifest(root: Path) -> None:
     manifest_path = DATA_DIR / "subset_manifest.csv"
 
     rows = []
-    for split, cap in SUBSET_CAPS.items():
+    for split in ("train", "valid", "test"):
         split_dir = root / split
-        for label_name, label in (("real", 0), ("fake", 1)):
+        for label_name, label in (("real", 1), ("fake", 0)):
             class_dir = split_dir / label_name
             paths = sorted(class_dir.glob("*.jpg")) + sorted(class_dir.glob("*.png"))
-            rng.shuffle(paths)
-            # Split the cap evenly between the two classes.
-            take = paths[: cap // 2]
-            for p in take:
+            for p in paths:
                 rows.append((str(p), label, split))
-            print(f"{split}/{label_name}: kept {len(take)} of {len(paths)}")
+            print(f"{split}/{label_name}: {len(paths)} images")
 
     with open(manifest_path, "w", newline="") as f:
         writer = csv.writer(f)
@@ -69,4 +61,4 @@ def build_subset_manifest(root: Path) -> None:
 
 if __name__ == "__main__":
     dataset_root = download_and_extract()
-    build_subset_manifest(dataset_root)
+    build_manifest(dataset_root)

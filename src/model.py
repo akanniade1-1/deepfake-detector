@@ -5,7 +5,8 @@ from torchvision.models import ResNet18_Weights, resnet18
 def build_model(freeze_backbone: bool = True) -> nn.Module:
     """ResNet18 pretrained on ImageNet, with a single-logit binary head.
 
-    Labels are 0=real, 1=fake; use BCEWithLogitsLoss on the raw output.
+    Labels are 1=real, 0=fake (matches the dataset's own convention);
+    use BCEWithLogitsLoss on the raw output.
     """
     model = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
 

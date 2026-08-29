@@ -1,8 +1,8 @@
 {
-  "accuracy": 0.791,
-  "precision": 0.791,
-  "recall": 0.791,
-  "f1": 0.791,
-  "roc_auc": 0.866449,
-  "n_test_samples": 2000
+  "accuracy": 0.8076,
+  "precision": 0.8178342632775367,
+  "recall": 0.7915,
+  "f1": 0.8044516719178778,
+  "roc_auc": 0.888502285,
+  "n_test_samples": 20000
 }

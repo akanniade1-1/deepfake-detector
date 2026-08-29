@@ -71,7 +71,7 @@ def main():
     CONFUSION_PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
     cm = confusion_matrix(all_labels, all_preds)
-    disp = ConfusionMatrixDisplay(cm, display_labels=["real", "fake"])
+    disp = ConfusionMatrixDisplay(cm, display_labels=["fake", "real"])
     disp.plot()
     plt.title("Confusion Matrix (test set)")
     plt.savefig(CONFUSION_PLOT_PATH)
