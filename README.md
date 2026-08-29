@@ -35,8 +35,9 @@ backbone is frozen; only a new `Linear(512, 1)` head is trained, with
 - Device: Apple Silicon GPU via PyTorch MPS backend
 - Best checkpoint selected by validation accuracy
 
-Loss/accuracy per epoch (`outputs/history.json`, plotted in
-`outputs/plots/loss_curve.png`):
+Loss/accuracy per epoch (`outputs/history.json`):
+
+![Training and validation loss curve](outputs/plots/loss_curve.png)
 
 | Epoch | Train Loss | Train Acc | Val Loss | Val Acc |
 |-------|-----------|-----------|----------|---------|
@@ -62,7 +63,8 @@ checkpoint (`outputs/metrics.json`, `src/evaluate.py`):
 | F1 | 0.791 |
 | ROC-AUC | 0.866 |
 
-See `outputs/plots/confusion_matrix.png` and `outputs/plots/roc_curve.png`.
+![Confusion matrix on the test set](outputs/plots/confusion_matrix.png)
+![ROC curve on the test set](outputs/plots/roc_curve.png)
 
 ## Honest limitations
 
