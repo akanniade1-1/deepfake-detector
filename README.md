@@ -12,6 +12,13 @@ undocumented claim.
   images, so a temporal model would have nothing to analyze) or a
   federated-learning system (single machine, single dataset).
 
+## Sample Predictions
+
+Random test images with the trained model's actual predictions
+(`src/visualize_samples.py`):
+
+![Sample test images with model predictions](outputs/plots/sample_predictions.png)
+
 ## Dataset
 
 [`xhlulu/140k-real-and-fake-faces`](https://www.kaggle.com/datasets/xhlulu/140k-real-and-fake-faces)
