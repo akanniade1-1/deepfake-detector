@@ -5,8 +5,7 @@ number below comes from actually running this code, not from an
 undocumented claim.
 
 See also: [MODEL_CARD.md](MODEL_CARD.md) (standardized model
-documentation) and [REPORT.md](REPORT.md) (a full rewritten report in the
-style of an academic paper).
+documentation).
 
 ## What this is (and isn't)
 
