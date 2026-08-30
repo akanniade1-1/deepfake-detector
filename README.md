@@ -4,6 +4,10 @@ A real, honestly-documented rebuild of a deepfake image classifier — every
 number below comes from actually running this code, not from an
 undocumented claim.
 
+See also: [MODEL_CARD.md](MODEL_CARD.md) (standardized model
+documentation) and [REPORT.md](REPORT.md) (a full rewritten report in the
+style of an academic paper).
+
 ## What this is (and isn't)
 
 - **Is**: a binary image classifier (real vs. GAN-generated fake face)
@@ -32,18 +36,29 @@ Labels use the dataset's own convention: **1 = real, 0 = fake**.
 
 ## Model
 
-`torchvision.models.resnet18`, pretrained on ImageNet. The convolutional
-backbone is frozen; only a new `Linear(512, 1)` head is trained, with
-`BCEWithLogitsLoss` (binary: 1 = real, 0 = fake). See `src/model.py`.
+`torchvision.models.resnet18`, pretrained on ImageNet, with a new
+`Linear(512, 1)` head, trained with `BCEWithLogitsLoss` (binary: 1 = real,
+0 = fake). See `src/model.py`. Two checkpoints are provided:
+
+- **Frozen-head** (`outputs/checkpoints/best_model.pt`): only the head is
+  trained, backbone stays at ImageNet weights.
+- **Fine-tuned** (`outputs/checkpoints/best_model_finetuned.pt`):
+  continued from the frozen-head checkpoint with the full backbone
+  unfrozen at a lower learning rate (`src/train_finetune.py`).
 
 ## Training
 
-- Optimizer: Adam, lr=1e-3 (head only)
-- Batch size: 32, 8 epochs
-- Device: Apple Silicon GPU via PyTorch MPS backend
-- Best checkpoint selected by validation accuracy
+| | Frozen-head | Fine-tuned |
+|---|---|---|
+| Optimizer | Adam, lr=1e-3 | Adam, lr=1e-4 |
+| Batch size | 32 | 32 |
+| Epochs | 8 | 4 |
+| Trainable params | head only | full network |
+| Device | Apple M3 GPU (MPS) | Apple M3 GPU (MPS) |
 
-Loss/accuracy per epoch (`outputs/history.json`):
+Best checkpoint in each stage selected by validation accuracy.
+
+**Frozen-head** (`outputs/history.json`):
 
 ![Training and validation loss curve](outputs/plots/loss_curve.png)
 
@@ -58,32 +73,47 @@ Loss/accuracy per epoch (`outputs/history.json`):
 | 7 | 0.432 | 0.801 | 0.432 | 0.803 |
 | 8 | 0.433 | 0.799 | 0.416 | 0.809 |
 
+**Fine-tuned, full backbone unfrozen** (`outputs/history_finetuned.json`):
+
+![Fine-tuning loss curve](outputs/plots/loss_curve_finetuned.png)
+
+| Epoch | Train Loss | Train Acc | Val Loss | Val Acc |
+|-------|-----------|-----------|----------|---------|
+| 1 | 0.106 | 0.959 | 0.043 | 0.984 |
+| 2 | 0.034 | 0.988 | 0.057 | 0.980 |
+| 3 | 0.023 | 0.991 | 0.037 | 0.987 |
+| **4** | 0.017 | 0.994 | 0.020 | **0.994** (best) |
+
 ## Test Set Results
 
-Evaluated once, on the full held-out 20,000-image test split, using the
-epoch-6 checkpoint (`outputs/metrics.json`, `src/evaluate.py`). "Positive"
-class is 1 = real, per the dataset's convention:
+Evaluated once, on the full held-out 20,000-image test split
+(`src/evaluate.py`). "Positive" class is 1 = real, per the dataset's
+convention:
 
-| Metric | Value |
-|--------|-------|
-| Accuracy | 0.808 |
-| Precision | 0.818 |
-| Recall | 0.792 |
-| F1 | 0.804 |
-| ROC-AUC | 0.889 |
+| Metric | Frozen-head (`outputs/metrics.json`) | Fine-tuned (`outputs/metrics_finetuned.json`) |
+|--------|-------|-------|
+| Accuracy | 0.808 | **0.993** |
+| Precision | 0.818 | 0.990 |
+| Recall | 0.792 | 0.997 |
+| F1 | 0.804 | 0.993 |
+| ROC-AUC | 0.889 | 0.9998 |
 
-![Confusion matrix on the test set](outputs/plots/confusion_matrix.png)
-![ROC curve on the test set](outputs/plots/roc_curve.png)
+Frozen-head plots: ![Confusion matrix (frozen-head)](outputs/plots/confusion_matrix.png) ![ROC curve (frozen-head)](outputs/plots/roc_curve.png)
+
+Fine-tuned plots: ![Confusion matrix (fine-tuned)](outputs/plots/confusion_matrix_finetuned.png) ![ROC curve (fine-tuned)](outputs/plots/roc_curve_finetuned.png)
 
 ## Honest limitations
 
-- Backbone is frozen (only the head is trained) — unfreezing and
-  fine-tuning the full network for more epochs would likely improve
-  results further, at the cost of longer training time.
+- Unfreezing the backbone raised accuracy from 80.8% to 99.3% — but this
+  is an **in-distribution** result: all fakes (train and test) come from
+  the same StyleGAN pipeline. This is a well-known property of this
+  dataset — a fine-tuned CNN can key in on that specific generator's
+  artifacts — and is not evidence the model would generalize to other
+  generation methods (diffusion models, other GANs, video/face-swap
+  deepfakes). No cross-dataset generalization test has been run.
 - This dataset's fakes are all StyleGAN-generated still images; the model
-  has not been tested against other generation methods (e.g. diffusion
-  models, face-swap video deepfakes) and shouldn't be assumed to
-  generalize to those.
+  has not been tested against other generation methods and shouldn't be
+  assumed to generalize to those.
 
 ## Reproducing
 
@@ -96,4 +126,18 @@ pip install -r requirements.txt
 python src/download_data.py
 python src/train.py
 python src/evaluate.py
+
+# optional: fine-tune the full backbone from the frozen-head checkpoint
+python src/train_finetune.py
+python src/evaluate.py --checkpoint outputs/checkpoints/best_model_finetuned.pt --tag finetuned
 ```
+
+## Try it yourself (local demo)
+
+```bash
+python app.py
+```
+
+Opens a local Gradio UI — upload a face photo and get a real/fake
+prediction with confidence. Uses the fine-tuned checkpoint if present,
+otherwise falls back to the frozen-head one.

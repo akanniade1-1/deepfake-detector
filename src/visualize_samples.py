@@ -17,7 +17,8 @@ from model import build_model
 from train import get_device
 
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "outputs"
-CHECKPOINT_PATH = OUTPUT_DIR / "checkpoints" / "best_model.pt"
+_FINETUNED = OUTPUT_DIR / "checkpoints" / "best_model_finetuned.pt"
+CHECKPOINT_PATH = _FINETUNED if _FINETUNED.exists() else OUTPUT_DIR / "checkpoints" / "best_model.pt"
 DATA_ROOT = Path(__file__).resolve().parent.parent / "data" / "real_vs_fake" / "real-vs-fake" / "test"
 SAMPLES_PLOT_PATH = OUTPUT_DIR / "plots" / "sample_predictions.png"
 

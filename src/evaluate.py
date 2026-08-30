@@ -1,3 +1,4 @@
+import argparse
 import json
 from pathlib import Path
 
@@ -24,13 +25,33 @@ from model import build_model
 from train import BATCH_SIZE, get_device
 
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "outputs"
-CHECKPOINT_PATH = OUTPUT_DIR / "checkpoints" / "best_model.pt"
-METRICS_PATH = OUTPUT_DIR / "metrics.json"
-CONFUSION_PLOT_PATH = OUTPUT_DIR / "plots" / "confusion_matrix.png"
-ROC_PLOT_PATH = OUTPUT_DIR / "plots" / "roc_curve.png"
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--checkpoint",
+        default=str(OUTPUT_DIR / "checkpoints" / "best_model.pt"),
+        help="Path to a model checkpoint (.pt) to evaluate.",
+    )
+    parser.add_argument(
+        "--tag",
+        default="",
+        help="Optional suffix for output filenames, e.g. 'finetuned' -> "
+        "metrics_finetuned.json, confusion_matrix_finetuned.png, etc. "
+        "Leave empty to use the default (unsuffixed) filenames.",
+    )
+    return parser.parse_args()
 
 
 def main():
+    args = parse_args()
+    suffix = f"_{args.tag}" if args.tag else ""
+
+    metrics_path = OUTPUT_DIR / f"metrics{suffix}.json"
+    confusion_plot_path = OUTPUT_DIR / "plots" / f"confusion_matrix{suffix}.png"
+    roc_plot_path = OUTPUT_DIR / "plots" / f"roc_curve{suffix}.png"
+
     device = get_device()
     print(f"Using device: {device}")
 
@@ -39,7 +60,7 @@ def main():
     print(f"test samples: {len(test_ds)}")
 
     model = build_model(freeze_backbone=True).to(device)
-    model.load_state_dict(torch.load(CHECKPOINT_PATH, map_location=device))
+    model.load_state_dict(torch.load(args.checkpoint, map_location=device))
     model.eval()
 
     all_labels, all_probs = [], []
@@ -56,6 +77,7 @@ def main():
     all_preds = (all_probs > 0.5).astype(float)
 
     metrics = {
+        "checkpoint": args.checkpoint,
         "accuracy": accuracy_score(all_labels, all_preds),
         "precision": precision_score(all_labels, all_preds),
         "recall": recall_score(all_labels, all_preds),
@@ -65,24 +87,24 @@ def main():
     }
 
     print(json.dumps(metrics, indent=2))
-    with open(METRICS_PATH, "w") as f:
+    with open(metrics_path, "w") as f:
         json.dump(metrics, f, indent=2)
 
-    CONFUSION_PLOT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    confusion_plot_path.parent.mkdir(parents=True, exist_ok=True)
 
     cm = confusion_matrix(all_labels, all_preds)
     disp = ConfusionMatrixDisplay(cm, display_labels=["fake", "real"])
     disp.plot()
     plt.title("Confusion Matrix (test set)")
-    plt.savefig(CONFUSION_PLOT_PATH)
+    plt.savefig(confusion_plot_path)
     plt.close()
 
     RocCurveDisplay.from_predictions(all_labels, all_probs)
     plt.title("ROC Curve (test set)")
-    plt.savefig(ROC_PLOT_PATH)
+    plt.savefig(roc_plot_path)
     plt.close()
 
-    print(f"Saved plots to {CONFUSION_PLOT_PATH} and {ROC_PLOT_PATH}")
+    print(f"Saved plots to {confusion_plot_path} and {roc_plot_path}")
 
 
 if __name__ == "__main__":
